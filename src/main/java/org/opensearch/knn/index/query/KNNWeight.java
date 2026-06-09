@@ -282,7 +282,7 @@ public abstract class KNNWeight extends Weight {
             @Override
             public Scorer get(long leadCost) throws IOException {
                 final TopDocs topDocs = searchLeaf(context, Optional.ofNullable(knnQuery.getK()).orElse(0)).getResult();
-                log.info("Radial search: visited={}, returned={}", topDocs.totalHits.value, topDocs.scoreDocs.length);
+                log.info("Radial search: visited={}, returned={}", topDocs.totalHits.value(), topDocs.scoreDocs.length);
                 cost = topDocs.scoreDocs.length;
                 if (cost == 0) {
                     return KNNScorer.emptyScorer();
