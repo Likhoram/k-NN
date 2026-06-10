@@ -10,12 +10,17 @@ import static org.opensearch.knn.common.KNNConstants.MAX_RESULTS_RADIAL_RESCORIN
 import static org.opensearch.knn.common.KNNConstants.VECTOR_DATA_TYPE_FIELD;
 import static org.opensearch.knn.index.VectorDataType.SUPPORTED_VECTOR_DATA_TYPES;
 
+import java.io.IOException;
 import java.util.Locale;
 
 import lombok.extern.log4j.Log4j2;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.ByteVectorSimilarityQuery;
 import org.apache.lucene.search.FloatVectorSimilarityQuery;
+import org.apache.lucene.search.knn.KnnCollectorManager;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.AcceptDocs;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.join.BitSetProducer;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.index.query.QueryShardContext;
@@ -180,13 +185,48 @@ public class RNNQueryFactory extends BaseQueryFactory {
         final float resultSimilarity,
         final Query filterQuery
     ) {
-        return new FloatVectorSimilarityQuery(
+        return new FloatVectorSimilarityQueryTmp(
             fieldName,
             floatVector,
             DEFAULT_LUCENE_RADIAL_SEARCH_TRAVERSAL_SIMILARITY_RATIO * resultSimilarity,
             resultSimilarity,
             filterQuery
         );
+    }
+
+    static class FloatVectorSimilarityQueryTmp extends FloatVectorSimilarityQuery {
+        public FloatVectorSimilarityQueryTmp(
+            String field,
+            float[] target,
+            float traversalSimilarity,
+            float resultSimilarity,
+            Query filter
+        ) {
+            super(field, target, traversalSimilarity, resultSimilarity, filter);
+        }
+
+        public FloatVectorSimilarityQueryTmp(String field, float[] target, float traversalSimilarity, float resultSimilarity) {
+            super(field, target, traversalSimilarity, resultSimilarity);
+        }
+
+        public FloatVectorSimilarityQueryTmp(String field, float[] target, float resultSimilarity, Query filter) {
+            super(field, target, resultSimilarity, filter);
+        }
+
+        public FloatVectorSimilarityQueryTmp(String field, float[] target, float resultSimilarity) {
+            super(field, target, resultSimilarity);
+        }
+
+        @Override
+        protected TopDocs approximateSearch(
+            LeafReaderContext context,
+            AcceptDocs acceptDocs,
+            int visitLimit,
+            KnnCollectorManager knnCollectorManager) throws IOException {
+            final TopDocs topDocs = super.approximateSearch(context, acceptDocs, visitLimit, knnCollectorManager);
+            log.info("Radial search: visited={}, returned={}", topDocs.totalHits.value(), topDocs.scoreDocs.length);
+            return topDocs;
+        }
     }
 
     /**
