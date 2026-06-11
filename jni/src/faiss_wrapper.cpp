@@ -9,6 +9,7 @@
  * GitHub history for details.
  */
 
+#include <iostream>
 #include "jni_util.h"
 #include "faiss_wrapper.h"
 #include "faiss_util.h"
@@ -1340,7 +1341,9 @@ jobjectArray knn_jni::faiss_wrapper::RangeSearchWithFilter(knn_jni::JNIUtilInter
             }
         }
         try {
+            faiss::hnsw_stats.reset();
             indexReader->range_search(1, rawQueryVector, radiusJ, &res, searchParameters);
+            std::cout << "Faiss radial search (filtered): visited=" << faiss::hnsw_stats.ndis << ", returned=" << res.lims[1] << std::endl;
         } catch (...) {
             jniUtil->ReleaseFloatArrayElements(env, queryVectorJ, rawQueryVector, JNI_ABORT);
             jniUtil->ReleaseLongArrayElements(env, filterIdsJ, filteredIdsArray, JNI_ABORT);
@@ -1363,7 +1366,9 @@ jobjectArray knn_jni::faiss_wrapper::RangeSearchWithFilter(knn_jni::JNIUtilInter
             searchParameters = &hnswParams;
         }
         try {
+            faiss::hnsw_stats.reset();
             indexReader->range_search(1, rawQueryVector, radiusJ, &res, searchParameters);
+            std::cout << "Faiss radial search: visited=" << faiss::hnsw_stats.ndis << ", returned=" << res.lims[1] << std::endl;
         } catch (...) {
             jniUtil->ReleaseFloatArrayElements(env, queryVectorJ, rawQueryVector, JNI_ABORT);
             throw;
